@@ -177,6 +177,7 @@
         :importing-ids="onlineTemplatesStore.importingIds"
         @retry="onlineTemplatesStore.retryTemplateDetail"
         @import="onlineTemplatesStore.importTemplate"
+        @visible="onlineTemplatesStore.requestVisibleDetails"
       />
     </div>
   </section>

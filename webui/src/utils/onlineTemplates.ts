@@ -12,7 +12,14 @@ import { extractTemplateMeta, sanitizeTemplate } from './config'
 
 const REQUEST_TIMEOUT_MS = 15000
 const SHELL_TIMEOUT_SECONDS = Math.ceil(REQUEST_TIMEOUT_MS / 1000)
-const DETAIL_CONCURRENCY = 6
+// Template files are tiny (~230 B) and served over HTTP/2 from jsDelivr or
+// raw.githubusercontent, so the browser can sustain far more than 6 sockets.
+// A larger window keeps the detail round trips from dominating load time.
+const DETAIL_CONCURRENCY = 18
+// Consecutive detail failures before we stop hammering a broken source.
+const CIRCUIT_FAILURE_THRESHOLD = 8
+const CIRCUIT_COOLDOWN_MS = 60 * 1000
+export const CIRCUIT_OPEN_ERROR = 'circuit_open'
 const FETCH_ACCEPT_TEXT = 'text/plain'
 const FETCH_ACCEPT_JSON = 'application/json'
 const FETCH_ACCEPT_GITHUB_JSON = 'application/vnd.github+json'
@@ -97,6 +104,57 @@ export class RateLimitError extends Error {
 
 export function isRateLimitError(error: unknown): boolean {
   return error instanceof Error && error.name === 'RateLimitError'
+}
+
+/**
+ * Per-source failure circuit. The catalog holds 150+ templates, so without a
+ * breaker a dead source burns a full timeout on every single entry.
+ */
+const circuitState = new Map<OnlineTemplateSource, { failures: number; openedAt: number | null }>()
+
+function getCircuitState(source: OnlineTemplateSource) {
+  const existing = circuitState.get(source)
+  if (existing) {
+    return existing
+  }
+
+  const created = { failures: 0, openedAt: null as number | null }
+  circuitState.set(source, created)
+  return created
+}
+
+function isCircuitOpen(source: OnlineTemplateSource): boolean {
+  const state = getCircuitState(source)
+  if (state.openedAt === null) {
+    return false
+  }
+
+  if (Date.now() - state.openedAt >= CIRCUIT_COOLDOWN_MS) {
+    state.openedAt = null
+    state.failures = 0
+    return false
+  }
+
+  return true
+}
+
+function recordCircuitFailure(source: OnlineTemplateSource) {
+  const state = getCircuitState(source)
+  state.failures += 1
+  if (state.failures >= CIRCUIT_FAILURE_THRESHOLD) {
+    state.openedAt = Date.now()
+  }
+}
+
+function recordCircuitSuccess(source: OnlineTemplateSource) {
+  const state = getCircuitState(source)
+  state.failures = 0
+  state.openedAt = null
+}
+
+/** Clears breaker state, e.g. when the user explicitly asks for a refresh. */
+export function resetTemplateCircuits() {
+  circuitState.clear()
 }
 
 function getSourceConfig(source: OnlineTemplateSource) {
@@ -207,7 +265,8 @@ function buildTemplateIndexItem(
 async function requestTextViaFetch(
   url: string,
   signal?: AbortSignal,
-  accept: string = FETCH_ACCEPT_JSON
+  accept: string = FETCH_ACCEPT_JSON,
+  cache: RequestCache = 'no-store'
 ): Promise<string> {
   assertNotAborted(signal)
 
@@ -224,7 +283,7 @@ async function requestTextViaFetch(
       headers: {
         Accept: accept,
       },
-      cache: 'no-store',
+      cache,
       signal: controller.signal,
     })
 
@@ -257,7 +316,9 @@ async function requestTextViaShell(
 
   const escapedUrl = escapeShellArg(url)
   const escapedAccept = escapeShellArg(accept)
-  const curlCommand = `curl -fsSL --connect-timeout ${SHELL_TIMEOUT_SECONDS} -H 'Accept: ${escapedAccept}' '${escapedUrl}'`
+  // --max-time is required: without it a server that accepts the connection
+  // but never responds hangs the shell fallback indefinitely.
+  const curlCommand = `curl -fsSL --connect-timeout ${SHELL_TIMEOUT_SECONDS} --max-time ${SHELL_TIMEOUT_SECONDS} -H 'Accept: ${escapedAccept}' '${escapedUrl}'`
   const wgetCommand = `wget -q -O - --timeout=${SHELL_TIMEOUT_SECONDS} --header='Accept: ${escapedAccept}' '${escapedUrl}'`
 
   return await execCommand(`${curlCommand} || ${wgetCommand}`)
@@ -266,10 +327,11 @@ async function requestTextViaShell(
 async function requestText(
   url: string,
   signal?: AbortSignal,
-  accept: string = FETCH_ACCEPT_JSON
+  accept: string = FETCH_ACCEPT_JSON,
+  cache: RequestCache = 'no-store'
 ): Promise<string> {
   try {
-    return await requestTextViaFetch(url, signal, accept)
+    return await requestTextViaFetch(url, signal, accept, cache)
   } catch (error) {
     if (isAbortError(error)) {
       throw error
@@ -291,9 +353,10 @@ async function requestText(
 async function requestJson<T>(
   url: string,
   signal?: AbortSignal,
-  accept: string = FETCH_ACCEPT_JSON
+  accept: string = FETCH_ACCEPT_JSON,
+  cache: RequestCache = 'no-store'
 ): Promise<T> {
-  const text = await requestText(url, signal, accept)
+  const text = await requestText(url, signal, accept, cache)
   return JSON.parse(text) as T
 }
 
@@ -437,7 +500,10 @@ async function fetchTemplateContent(
         return await fetchTemplateContentViaContentsApi(item.source, candidate.url, signal)
       }
 
-      const content = await requestText(candidate.url, signal, FETCH_ACCEPT_TEXT)
+      // Template files are content-addressed by ref and validated against the
+      // tree sha, so letting the browser cache them is safe and saves a full
+      // round trip on every revisit.
+      const content = await requestText(candidate.url, signal, FETCH_ACCEPT_TEXT, 'default')
       if (content.trim()) {
         return content
       }
@@ -457,13 +523,22 @@ async function fetchTemplateContent(
     : new Error(`Template content for "${item.path}" is unavailable.`)
 }
 
-async function loadSingleTemplateDetail(
+export async function loadSingleTemplateDetail(
   item: OnlineTemplateIndexItem,
   signal?: AbortSignal
 ): Promise<TemplateDetailLoadResult> {
   try {
+    if (isCircuitOpen(item.source)) {
+      return {
+        id: item.id,
+        error: CIRCUIT_OPEN_ERROR,
+        version: item.sha,
+      }
+    }
+
     const content = await fetchTemplateContent(item, signal)
     const detail = parseTemplateDocument(content)
+    recordCircuitSuccess(item.source)
 
     return {
       id: item.id,
@@ -474,6 +549,8 @@ async function loadSingleTemplateDetail(
     if (isAbortError(error)) {
       throw error
     }
+
+    recordCircuitFailure(item.source)
 
     return {
       id: item.id,

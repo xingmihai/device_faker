@@ -182,6 +182,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   retry: [string]
   import: [string]
+  visible: [string[]]
 }>()
 
 const { t } = useI18n()
@@ -304,11 +305,7 @@ function estimateMetaPanelHeight(detail: OnlineTemplateDetail) {
   )
 }
 
-function estimateCardHeight(item: OnlineTemplateRecord) {
-  if (props.itemHeight) {
-    return props.itemHeight
-  }
-
+function computeCardHeight(item: OnlineTemplateRecord) {
   const isMobile = getViewportLayoutWidth() <= MOBILE_BREAKPOINT
   const cardContentWidth = getCardContentWidth()
   const titleHeight = measureWrappedTextHeight({
@@ -342,6 +339,31 @@ function estimateCardHeight(item: OnlineTemplateRecord) {
 
   const bodyHeight = item.detailStatus === 'error' ? ERROR_BODY_HEIGHT : LOADING_BODY_HEIGHT
   return CARD_VERTICAL_PADDING + CARD_SECTION_GAP * 2 + headerHeight + bodyHeight + actionHeight
+}
+
+// Layout runs a text measurement per card, and itemMetrics is recomputed every
+// time a detail lands. Memoising by id + status + viewport width keeps scrolling
+// smooth while 150+ cards are streaming in.
+const heightCache = new Map<string, number>()
+const HEIGHT_CACHE_LIMIT = 4000
+
+function estimateCardHeight(item: OnlineTemplateRecord) {
+  if (props.itemHeight) {
+    return props.itemHeight
+  }
+
+  const cacheKey = `${item.id}|${item.detailStatus}|${Math.round(getViewportLayoutWidth())}`
+  const cached = heightCache.get(cacheKey)
+  if (cached !== undefined) {
+    return cached
+  }
+
+  const height = computeCardHeight(item)
+  if (heightCache.size >= HEIGHT_CACHE_LIMIT) {
+    heightCache.clear()
+  }
+  heightCache.set(cacheKey, height)
+  return height
 }
 
 type VirtualEntry = {
@@ -440,6 +462,15 @@ function getSummaryText(detail: OnlineTemplateDetail) {
 
   return parts.join(' · ')
 }
+
+// Let the store know which cards are on screen so it can fetch only those.
+watch(
+  visibleEntries,
+  (entries) => {
+    emit('visible', entries.map((entry) => entry.item.id))
+  },
+  { immediate: true }
+)
 
 watch(totalHeight, () => {
   const maxScrollTop = Math.max(0, totalHeight.value - viewportHeight.value)

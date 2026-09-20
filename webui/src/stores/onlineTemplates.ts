@@ -17,10 +17,13 @@ import type {
 import { useConfigStore } from './config'
 import { useSettingsStore } from './settings'
 import {
+  CIRCUIT_OPEN_ERROR,
   TEMPLATE_CATEGORIES,
   isRateLimitError,
+  loadSingleTemplateDetail,
   loadTemplateDetails,
   loadTemplateIndex,
+  resetTemplateCircuits,
   type TemplateDetailLoadResult,
 } from '../utils/onlineTemplates'
 import { useLazyMessageBox } from '../utils/elementPlus'
@@ -31,6 +34,11 @@ const SNAPSHOT_CACHE_KEY = 'device_faker_online_templates_snapshot_v2'
 const DETAIL_CACHE_PREFIX = 'device_faker_online_templates_details_v2'
 const NETWORK_REFRESH_INTERVAL_MS = 2 * 60 * 1000
 const DETAIL_CACHE_TTL_MS = 12 * 60 * 60 * 1000
+// Only the first screen worth of details is fetched eagerly; everything else is
+// pulled when its card actually scrolls into view.
+const EAGER_DETAIL_COUNT = 12
+const DETAIL_QUEUE_CONCURRENCY = 12
+const DETAIL_PERSIST_DEBOUNCE_MS = 1200
 
 interface CatalogSnapshot {
   preferredSource: OnlineTemplateSource
@@ -149,6 +157,9 @@ export const useOnlineTemplatesStore = defineStore('online-templates', () => {
   let persistTimer: number | null = null
   let persistSource: OnlineTemplateSource | null = null
   let sessionSeed = 0
+  let queueController: AbortController | null = null
+  const detailQueue: string[] = []
+  const detailInFlight = new Set<string>()
 
   const preferredSource = computed(() => settingsStore.onlineTemplateSource)
   const isFallbackSource = computed(() =>
@@ -308,7 +319,7 @@ export const useOnlineTemplatesStore = defineStore('online-templates', () => {
     persistTimer = window.setTimeout(() => {
       persistTimer = null
       persistReadyDetails(persistSource)
-    }, 180)
+    }, DETAIL_PERSIST_DEBOUNCE_MS)
   }
 
   function persistReadyDetails(source: OnlineTemplateSource | null) {
@@ -389,13 +400,17 @@ export const useOnlineTemplatesStore = defineStore('online-templates', () => {
 
   function recomputeProgress() {
     const nextProgress = createIdleProgress()
-    nextProgress.total = indexItems.value.length
 
+    // Details are now fetched lazily, so progress tracks only the entries that
+    // have actually been requested (eager batch + whatever scrolled into view)
+    // instead of the whole 150+ item catalog.
     for (const item of indexItems.value) {
       const state = detailStateById.value[item.id]
-      if (!state) {
+      if (!state || state.status === 'idle') {
         continue
       }
+
+      nextProgress.total += 1
 
       if (state.status === 'ready') {
         nextProgress.resolved += 1
@@ -448,7 +463,10 @@ export const useOnlineTemplatesStore = defineStore('online-templates', () => {
           }
         : {
             status: 'error',
-            error: result.error || t('templates.online.errors.detail_failed'),
+            error:
+              result.error === CIRCUIT_OPEN_ERROR
+                ? t('templates.online.errors.circuit_open')
+                : result.error || t('templates.online.errors.detail_failed'),
             updatedAt: timestamp,
             version: result.version,
           }
@@ -464,6 +482,100 @@ export const useOnlineTemplatesStore = defineStore('online-templates', () => {
     return items.filter((item) => {
       return detailStateById.value[item.id]?.status !== 'ready'
     })
+  }
+
+  function markDetailLoading(id: string) {
+    const current = detailStateById.value[id]
+    if (!current || current.status === 'loading') {
+      return
+    }
+
+    detailStateById.value = {
+      ...detailStateById.value,
+      [id]: { ...current, status: 'loading', error: null },
+    }
+  }
+
+  function resetDetailQueue() {
+    detailQueue.length = 0
+    detailInFlight.clear()
+    queueController = null
+  }
+
+  function pumpDetailQueue() {
+    const source = activeSource.value
+    if (!source) {
+      return
+    }
+
+    while (detailInFlight.size < DETAIL_QUEUE_CONCURRENCY && detailQueue.length > 0) {
+      const id = detailQueue.shift()
+      if (!id) {
+        break
+      }
+
+      const state = detailStateById.value[id]
+      if (!state || state.status === 'ready' || state.status === 'loading') {
+        continue
+      }
+
+      const item = indexById.value[id]
+      if (!item) {
+        continue
+      }
+
+      markDetailLoading(id)
+      detailInFlight.add(id)
+
+      const sessionId = session.value?.id ?? -1
+      void loadSingleTemplateDetail(item, queueController?.signal)
+        .then((result) => {
+          if (session.value?.id !== sessionId) {
+            return
+          }
+
+          applyDetailChunk([result], source)
+        })
+        .catch(() => {
+          // Terminal failures are already reported as error results by
+          // loadSingleTemplateDetail; swallow anything left over so a slow
+          // scroll cannot surface an unhandled rejection.
+        })
+        .finally(() => {
+          detailInFlight.delete(id)
+          pumpDetailQueue()
+        })
+    }
+  }
+
+  /**
+   * Called by the virtual list whenever the visible window changes. Only the
+   * cards actually on screen are fetched, so opening the library costs a
+   * handful of requests instead of one per template in the catalog.
+   */
+  function requestVisibleDetails(ids: string[]) {
+    if (!activeSource.value || ids.length === 0) {
+      return
+    }
+
+    for (const id of ids) {
+      const state = detailStateById.value[id]
+      if (!state || state.status !== 'idle') {
+        continue
+      }
+
+      if (detailQueue.includes(id) || detailInFlight.has(id)) {
+        continue
+      }
+
+      detailQueue.push(id)
+    }
+
+    if (!queueController) {
+      queueController = new AbortController()
+    }
+
+    pumpDetailQueue()
   }
 
   async function loadDetailBatch(
@@ -561,10 +673,12 @@ export const useOnlineTemplatesStore = defineStore('online-templates', () => {
   function cancelActiveRequests() {
     indexController?.abort()
     detailsController?.abort()
+    queueController?.abort()
     indexController = null
     detailsController = null
     currentLoadPromise = null
     currentDetailsPromise = null
+    resetDetailQueue()
   }
 
   async function refreshCatalog(options: { background?: boolean } = {}) {
@@ -615,7 +729,9 @@ export const useOnlineTemplatesStore = defineStore('online-templates', () => {
         writeSnapshotCache(result.source, result.items)
         queueDetailCachePersist(result.source)
 
-        const pendingItems = getPendingDetailItems(result.items)
+        // Fetch only what the first screen needs; the rest arrives on demand
+        // via requestVisibleDetails() as the user scrolls.
+        const pendingItems = getPendingDetailItems(result.items).slice(0, EAGER_DETAIL_COUNT)
         if (pendingItems.length > 0) {
           await loadDetailBatch(pendingItems, result.source)
         } else {
@@ -659,7 +775,7 @@ export const useOnlineTemplatesStore = defineStore('online-templates', () => {
     }
 
     if (activeSource.value) {
-      const pendingItems = getPendingDetailItems()
+      const pendingItems = getPendingDetailItems().slice(0, EAGER_DETAIL_COUNT)
       if (pendingItems.length > 0) {
         void loadDetailBatch(pendingItems, activeSource.value)
       }
@@ -671,6 +787,8 @@ export const useOnlineTemplatesStore = defineStore('online-templates', () => {
   }
 
   async function reloadCatalog() {
+    // A manual refresh should retry a source the breaker may have tripped.
+    resetTemplateCircuits()
     await refreshCatalog({ background: hasAnyData.value })
   }
 
@@ -768,6 +886,7 @@ export const useOnlineTemplatesStore = defineStore('online-templates', () => {
     setSelectedBrand,
     ensureCatalogLoaded,
     reloadCatalog,
+    requestVisibleDetails,
     retryFailedDetails,
     retryTemplateDetail,
     importTemplate,

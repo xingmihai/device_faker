@@ -225,6 +225,7 @@ export const messages = {
           empty_content: '模板内容为空',
           import_failed: '导入失败',
           rate_limited: 'API 请求频率受限，请稍后重试',
+          circuit_open: '模板源连续失败，已暂停剩余请求',
         },
         messages: {
           import_success: '模板 "{name}" 导入成功',
@@ -615,6 +616,7 @@ export const messages = {
           empty_content: 'Template content is empty',
           import_failed: 'Import failed',
           rate_limited: 'API rate limit exceeded, please try again later',
+          circuit_open: 'Template source keeps failing, remaining requests paused',
         },
         messages: {
           import_success: 'Template "{name}" imported successfully',
@@ -1008,6 +1010,7 @@ export const messages = {
           empty_content: 'Şablon içeriği boş.',
           import_failed: 'İçe aktarma başarısız oldu.',
           rate_limited: 'API istek sınırı aşıldı, lütfen daha sonra tekrar deneyin.',
+          circuit_open: 'Şablon kaynağı sürekli hata veriyor, kalan istekler duraklatıldı.',
         },
         messages: {
           import_success: '"{name}" şablonu başarıyla içe aktarıldı.',
