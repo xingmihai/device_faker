@@ -17,7 +17,9 @@ toml = { version = "1.0", features = ["parse"] }
 zygisk-api = { git = "https://github.com/Seyud/zygisk-api-rs.git" }
 serde_json = "1.0.149"
 libc = "0.2"
-prop-rs-android = { git = "https://github.com/Kernel-SU/ksu_props.git", version = "0.2.0" }
+# 上游 Kernel-SU/ksu_props 已删除（fetch 时 404，被 cargo 误报为鉴权失败）。
+# 这里改用自建镜像 xingmihai/ksu_props，内容与 Cargo.lock 锁定的 commit 一致。
+prop-rs-android = { git = "https://github.com/xingmihai/ksu_props.git", rev = "ddb6ee7294467f7f25bad2118e9e24eee104144b", version = "0.2.0" }
 memmap2 = "0.9.11"
 # 前台 UidObserver：root binder 注册 ActivityManager.registerUidObserver，
 # 事件驱动接收 PROCESS_STATE_TOP 变化。
