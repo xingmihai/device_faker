@@ -110,7 +110,7 @@ watch(searchQuery, (value) => {
   padding: 0.5rem 0.75rem;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-sm);
   flex: 1;
   max-width: 400px;
   min-width: 200px;
@@ -165,7 +165,7 @@ watch(searchQuery, (value) => {
   background: var(--primary);
   color: white;
   border: none;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-sm);
   font-size: 0.8125rem;
   font-weight: 600;
   line-height: 1.1;

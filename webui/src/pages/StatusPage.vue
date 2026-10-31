@@ -184,8 +184,10 @@ onActivated(() => {
 
 .status-card {
   padding: 1.5rem;
-  border-radius: 1rem;
-  box-shadow: 0 4px 12px var(--shadow);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  background: var(--card-bg);
+  border: 1px solid transparent;
   position: relative;
   overflow: hidden;
 }
@@ -197,16 +199,30 @@ onActivated(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, rgba(14, 165, 233, 0.03) 0%, rgba(168, 85, 247, 0.03) 100%);
+  background: var(--gradient-wash);
   pointer-events: none;
 }
 
 .card-title {
-  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.0625rem;
   font-weight: 600;
-  margin-bottom: 1.5rem;
+  letter-spacing: -0.01em;
+  margin-bottom: 1.25rem;
   color: var(--text);
   position: relative;
+}
+
+/* 标题左侧渐变竖条 */
+.card-title::before {
+  content: '';
+  width: 3px;
+  height: 1.05rem;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(180deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+  flex-shrink: 0;
 }
 
 .status-grid {
@@ -221,7 +237,7 @@ onActivated(() => {
   gap: 1rem;
   padding: 1rem;
   background: var(--background);
-  border-radius: 0.75rem;
+  border-radius: var(--radius-md);
   transition: all 0.15s ease;
   -webkit-tap-highlight-color: transparent;
 }
@@ -247,7 +263,7 @@ onActivated(() => {
   justify-content: center;
   width: 48px;
   height: 48px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   position: relative;
   flex-shrink: 0;
 }
@@ -255,25 +271,25 @@ onActivated(() => {
 .gradient-icon-1 {
   background: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%);
   color: white;
-  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+  box-shadow: 0 4px 14px -3px rgba(14, 165, 233, 0.45);
 }
 
 .gradient-icon-2 {
   background: linear-gradient(135deg, #06b6d4 0%, #0ea5e9 100%);
   color: white;
-  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+  box-shadow: 0 4px 14px -3px rgba(6, 182, 212, 0.45);
 }
 
 .gradient-icon-3 {
   background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
   color: white;
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+  box-shadow: 0 4px 14px -3px rgba(139, 92, 246, 0.45);
 }
 
 .gradient-icon-5 {
   background: linear-gradient(135deg, #f97316 0%, #fb7185 100%);
   color: white;
-  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+  box-shadow: 0 4px 14px -3px rgba(249, 115, 22, 0.45);
 }
 
 .status-info {
@@ -329,10 +345,10 @@ onActivated(() => {
 .status-value-skeleton,
 .status-build-skeleton {
   display: inline-flex;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: linear-gradient(90deg, var(--border) 25%, var(--card-bg) 50%, var(--border) 75%);
   background-size: 200% 100%;
-  animation: status-skeleton-shimmer 1.3s linear infinite;
+  animation: status-skeleton-shimmer 1.4s ease-in-out infinite;
   opacity: 0.8;
 }
 

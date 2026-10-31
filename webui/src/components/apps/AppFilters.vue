@@ -98,7 +98,7 @@ const toggleSystemApps = () => emit('update:showSystemApps', !props.showSystemAp
   height: auto;
   margin-left: auto;
   padding: 0.5rem 0.875rem;
-  border-radius: 0.75rem;
+  border-radius: var(--radius-md);
   border-color: var(--border);
   background: var(--card-bg);
   color: var(--text);
@@ -145,7 +145,7 @@ const toggleSystemApps = () => emit('update:showSystemApps', !props.showSystemAp
   padding: 0.5rem 1rem;
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-sm);
   color: var(--text-secondary);
   font-size: 0.875rem;
   font-weight: 500;

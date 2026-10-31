@@ -293,8 +293,8 @@ onActivated(() => {
 
 .settings-section {
   padding: 1.5rem;
-  border-radius: 1rem;
-  box-shadow: 0 2px 8px var(--shadow);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 .section-title {
@@ -330,7 +330,7 @@ onActivated(() => {
   width: 40px;
   height: 40px;
   background: var(--background);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-sm);
   color: var(--primary);
   flex-shrink: 0;
 }

@@ -258,7 +258,7 @@ onActivated(() => {
   flex-direction: column;
   gap: 0.375rem;
   padding: 0.75rem 0.875rem;
-  border-radius: 0.75rem;
+  border-radius: var(--radius-md);
   border: 1px solid rgba(245, 158, 11, 0.35);
   background: rgba(245, 158, 11, 0.1);
   color: var(--el-text-color-primary, inherit);

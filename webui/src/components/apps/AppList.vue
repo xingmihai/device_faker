@@ -133,10 +133,10 @@ onUnmounted(() => {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  border-radius: 0.75rem;
+  border-radius: var(--radius-md);
   background: var(--card-bg);
   border: 1px solid var(--border);
-  box-shadow: 0 1px 4px var(--shadow);
+  box-shadow: var(--shadow-xs);
   /* 只过渡反馈需要的属性;box-shadow/背景过渡在滚动列表里是纯浪费 */
   transition: transform 0.15s ease;
   -webkit-tap-highlight-color: transparent;
@@ -150,7 +150,7 @@ onUnmounted(() => {
 
 .apps-list .app-card:active {
   transform: scale(0.98);
-  box-shadow: 0 1px 3px var(--shadow);
+  box-shadow: var(--shadow-xs);
 }
 
 .app-icon-container {
@@ -161,7 +161,7 @@ onUnmounted(() => {
   width: 48px;
   height: 48px;
   flex-shrink: 0;
-  border-radius: 0.75rem;
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
@@ -227,8 +227,9 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.25rem;
   font-size: 0.75rem;
-  padding: 0.125rem 0.5rem;
-  border-radius: 0.25rem;
+  font-weight: 500;
+  padding: 0.1875rem 0.625rem;
+  border-radius: var(--radius-pill);
 }
 
 .app-status.configured {

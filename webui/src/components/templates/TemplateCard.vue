@@ -120,17 +120,42 @@ const { t } = useI18n()
 <style scoped>
 .template-card {
   padding: 1.25rem;
-  border-radius: 1rem;
-  box-shadow: 0 2px 8px var(--shadow);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  background: var(--card-bg);
+  border: 1px solid transparent;
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
   position: relative;
+  overflow: hidden;
   transform: translateZ(0);
   contain: layout style paint;
-  box-shadow:
-    0 2px 8px var(--shadow),
-    0 0 0 0 transparent;
+  transition:
+    box-shadow 0.25s var(--ease-standard),
+    border-color 0.25s var(--ease-standard);
+}
+
+/* 顶部渐变高光：hover 时浮现，模拟玻璃边缘受光 */
+.template-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(14, 165, 233, 0.35) 35%,
+    rgba(168, 85, 247, 0.35) 65%,
+    transparent 100%
+  );
+  opacity: 0;
+  transition: opacity 0.25s var(--ease-standard);
+  pointer-events: none;
+}
+
+.template-card:hover::before {
+  opacity: 1;
 }
 
 .template-header {
@@ -181,24 +206,30 @@ const { t } = useI18n()
   justify-content: center;
   width: 36px;
   height: 36px;
-  background: var(--background);
+  background: var(--gradient-wash);
   border: none;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-sm);
   color: var(--text);
-  transition: all 0.2s ease;
+  box-shadow: inset 0 0 0 1px rgba(14, 165, 233, 0.12);
+  transition:
+    transform 0.18s var(--ease-standard),
+    background-color 0.18s var(--ease-standard),
+    color 0.18s var(--ease-standard);
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   -webkit-user-select: none;
 }
 
 .icon-btn:active {
-  background: var(--primary);
+  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
   color: white;
-  transform: scale(0.95);
+  box-shadow: 0 3px 10px -2px rgba(14, 165, 233, 0.45);
+  transform: scale(0.94);
 }
 
 .icon-btn.danger:active {
   background: #ef4444;
+  box-shadow: 0 3px 10px -2px rgba(239, 68, 68, 0.45);
 }
 
 .template-details {
@@ -225,9 +256,20 @@ const { t } = useI18n()
 }
 
 .template-meta {
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border);
+  margin-top: 0.875rem;
+  padding-top: 0.875rem;
+  border-top: 1px solid transparent;
+  /* 渐变淡出分隔线，比实线更柔和 */
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    var(--border) 12%,
+    var(--border) 88%,
+    transparent
+  );
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+  background-position: top;
 }
 
 .meta-item {
