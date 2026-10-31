@@ -1,28 +1,6 @@
-# 忽略依赖
-node_modules/
-
-# 忽略构建输出
-dist/
-dist-ssr/
-../webroot/
-
-# 本地环境变量
-.env.local
-.env.*.local
-
-# 日志
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# 编辑器目录和文件
-.vscode/*
-!.vscode/extensions.json
-.idea
+# 零构建 WebUI：webui/ 下即成品，无 node_modules / dist / lock 文件。
+# 本地编辑器与系统残留
+.vscode/
+.idea/
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+*.log

@@ -6,7 +6,7 @@ use std::{
     process::{self, Command},
 };
 
-use anyhow::Result;
+use anyhow::{Result, bail};
 use clap::{Parser, Subcommand};
 use fs_extra::{dir, file};
 use time::{OffsetDateTime, UtcOffset};
@@ -283,16 +283,41 @@ fn cargo_ndk() -> Command {
     command
 }
 
+/// 部署 WebUI。
+///
+/// WebUI 已改为**零构建**的原生实现（HTML + CSS + 原生 JS，见 `webui/`），
+/// 不再需要 Node / npm / Vite —— 直接把源码拷进 `module/webroot/` 即为成品。
+///
+/// 好处除了省掉整条工具链，还有：源码即产物，仓库里看到的就是设备上运行的，
+/// 不会出现「改了源码但没重新 build，装上去还是旧的」这种排障黑洞。
 fn build_webui() -> Result<()> {
-    let npm_cmd = if cfg!(windows) { "npm.cmd" } else { "npm" };
-    let npm = || {
-        let mut command = Command::new(npm_cmd);
-        command.current_dir("webui");
-        command
-    };
+    let src = Path::new("webui");
+    let dest = module_dir().join("webroot");
 
-    npm().arg("install").spawn()?.wait()?;
-    npm().args(["run", "build"]).spawn()?.wait()?;
+    if !src.join("index.html").exists() {
+        bail!("webui/index.html 不存在，WebUI 源码不完整");
+    }
 
+    // 先清空，避免旧构建产物（如曾经的 assets/*.js chunk）残留
+    let _ = fs::remove_dir_all(&dest);
+    fs::create_dir_all(&dest)?;
+
+    // 逐项拷贝，跳过开发工具残留目录
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        if name == ".gitignore" || name == "node_modules" || name == "dist" {
+            continue;
+        }
+        let to = dest.join(name.as_ref());
+        if entry.file_type()?.is_dir() {
+            dir::copy(entry.path(), &to, &dir::CopyOptions::new().overwrite(true).content_only(true))?;
+        } else {
+            fs::copy(entry.path(), &to)?;
+        }
+    }
+
+    println!("webui deployed to {:?}", dest);
     Ok(())
 }

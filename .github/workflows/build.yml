@@ -49,25 +49,14 @@ jobs:
           toolchain: nightly
           targets: aarch64-linux-android
       
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: 'lts/*'
-          cache: 'npm'
-          cache-dependency-path: webui/package-lock.json
-          
       - name: Install build dependencies
         run: |
           sudo apt update
           sudo apt install -y gcc-multilib
           cargo install cargo-ndk --locked
 
-      - name: Type check webui
-        run: |
-          cd webui
-          npm ci
-          npm run type-check
-
+      # WebUI 已改为零构建的原生实现（webui/ 下即成品），由 xtask build 直接
+      # 拷贝进 module/webroot，无需 Node/npm/类型检查。
       - name: Build device_faker
         run: |
           cargo run --package xtask -- build -r
