@@ -368,6 +368,17 @@ fn flush_log_buffer_to_companion(api: &mut ZygiskApi<V4>) -> anyhow::Result<()> 
     Ok(())
 }
 
+/// 构建标识：`短 git hash`（工作区脏则 `-dirty`） + 构建时间（UTC）。
+///
+/// 两个值由 `build.rs` 在编译期经 `cargo:rustc-env` 注入（`DF_GIT_HASH` /
+/// `DF_BUILD_TIME`），因此这里是 `concat!` 常量折叠，无运行时开销。
+///
+/// companion 每次开机打一条版本 banner（`src/companion.rs` 的 `sync_log_level`），
+/// 真机排障时据此确认用户装的是哪个构建。
+pub(crate) fn build_ident() -> &'static str {
+    concat!(env!("DF_GIT_HASH"), " (", env!("DF_BUILD_TIME"), ")")
+}
+
 // Note: The register_module macro should handle the EnvUnowned properly
 // The unwrap_unchecked issue is a macro expansion problem in jni 0.22
 // We'll let the macro handle this internally
