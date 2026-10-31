@@ -9,6 +9,9 @@ on:
       - 'device_faker_cli/**'
       - 'module/**'
       - 'webui/**'
+      # xtask 是构建编排本体，改了必须验证，否则 CI 会静默跳过
+      - 'xtask/**'
+      - 'build.rs'
       - '.github/workflows/build.yml'
   pull_request:
     paths:
@@ -17,6 +20,9 @@ on:
       - 'device_faker_cli/**'
       - 'module/**'
       - 'webui/**'
+      # xtask 是构建编排本体，改了必须验证，否则 CI 会静默跳过
+      - 'xtask/**'
+      - 'build.rs'
       - '.github/workflows/build.yml'
 
 jobs:
