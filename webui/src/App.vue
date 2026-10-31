@@ -26,6 +26,7 @@
             >
               <div class="page-scroll-content">
                 <header class="app-header">
+                  <span class="app-header__glow" aria-hidden="true"></span>
                   <h1 class="header-title">
                     Device Faker
                     <span class="version">{{ nav.versionDisplay.value }}</span>
@@ -52,8 +53,11 @@
         @pointerdown="primePage(page.id)"
         @click.stop="nav.handlePageChange(page.id)"
       >
-        <component :is="page.icon" :size="24" />
+        <span class="nav-icon">
+          <component :is="page.icon" :size="23" />
+        </span>
         <span class="nav-label">{{ page.label }}</span>
+        <span class="nav-indicator" aria-hidden="true"></span>
       </button>
     </nav>
   </div>
@@ -177,31 +181,61 @@ onUnmounted(() => {
 }
 
 .app-header {
-  padding-top: calc(var(--safe-area-inset-top) + 1rem);
-  padding-left: 1rem;
-  padding-right: 1rem;
-  padding-bottom: 1rem;
-  border-radius: 0 0 1rem 1rem;
-  margin-bottom: 0.5rem;
-  box-shadow: 0 4px 12px var(--shadow);
+  padding-top: calc(var(--safe-area-inset-top) + 1.125rem);
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+  padding-bottom: 1.125rem;
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+  margin-bottom: 0.75rem;
+  box-shadow: var(--shadow-sm);
   position: relative;
   overflow: hidden;
   background: var(--card-bg);
   border-bottom: 1px solid var(--border);
 }
 
+/* 柔和渐变铺底 */
 .app-header::before {
   content: '';
   position: absolute;
   inset: 0;
   background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
-  opacity: 0.08;
+  opacity: 0.07;
   z-index: 0;
 }
 
+/* 右上角一枚柔光斑：让标题区不至于太"平" */
+.app-header__glow {
+  position: absolute;
+  top: -60%;
+  right: -12%;
+  width: 15rem;
+  height: 15rem;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(168, 85, 247, 0.22) 0%,
+    rgba(14, 165, 233, 0.1) 45%,
+    transparent 70%
+  );
+  filter: blur(6px);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.dark .app-header__glow {
+  background: radial-gradient(
+    circle,
+    rgba(168, 85, 247, 0.28) 0%,
+    rgba(14, 165, 233, 0.14) 45%,
+    transparent 70%
+  );
+}
+
 .header-title {
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: 1.625rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -214,12 +248,23 @@ onUnmounted(() => {
   z-index: 1;
 }
 
+/* 版本号做成精致胶囊，不再是一个"灰字" */
 .version {
-  font-size: 1rem;
-  font-weight: 400;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0;
   color: var(--text-secondary);
   line-height: 1;
-  padding-bottom: 0.1rem;
+  padding: 0.25rem 0.5rem;
+  margin-bottom: 0.15rem;
+  border-radius: var(--radius-pill);
+  background: var(--gradient-wash);
+  box-shadow: inset 0 0 0 1px rgba(14, 165, 233, 0.14);
+  -webkit-text-fill-color: var(--text-secondary);
+}
+
+.dark .version {
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.2);
 }
 
 .main-content {
@@ -258,7 +303,7 @@ onUnmounted(() => {
   min-width: 0;
   min-height: 0;
   height: 100%;
-  padding: 0 1rem;
+  padding: 0 0.875rem;
 }
 
 .page-scroll {
@@ -285,25 +330,27 @@ onUnmounted(() => {
 .page-placeholder {
   display: flex;
   flex-direction: column;
-  gap: 0.875rem;
-  padding: 1.5rem;
-  border-radius: 1rem;
+  gap: 1rem;
+  padding: 1.75rem 1.5rem;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
   min-height: 14rem;
 }
 
 .page-placeholder__line {
   height: 0.95rem;
   width: 100%;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: linear-gradient(90deg, var(--border) 25%, var(--card-bg) 50%, var(--border) 75%);
   background-size: 200% 100%;
-  animation: page-placeholder-shimmer 1.3s linear infinite;
-  opacity: 0.75;
+  animation: page-placeholder-shimmer 1.4s ease-in-out infinite;
+  opacity: 0.7;
 }
 
 .page-placeholder__line--title {
   width: 42%;
-  height: 1.2rem;
+  height: 1.25rem;
+  margin-bottom: 0.25rem;
 }
 
 .page-placeholder__line--short {
@@ -324,63 +371,107 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-around;
   align-items: center;
-  padding: 0.75rem 0;
-  border-radius: 1rem 1rem 0 0;
-  box-shadow: 0 -4px 12px var(--shadow);
+  padding: 0.5rem 0.5rem calc(0.375rem + var(--safe-area-inset-bottom));
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  box-shadow:
+    0 -6px 24px -8px rgba(15, 23, 42, 0.14),
+    0 -1px 3px rgba(15, 23, 42, 0.05);
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   z-index: 100;
   pointer-events: auto;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(20px) saturate(180%);
-  border-top: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(24px) saturate(180%);
+  border-top: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 .dark .bottom-nav {
-  background: rgba(30, 41, 59, 0.85);
-  backdrop-filter: blur(20px) saturate(180%);
-  border-top: 1px solid rgba(51, 65, 85, 0.4);
+  background: rgba(30, 41, 59, 0.86);
+  backdrop-filter: blur(24px) saturate(160%);
+  border-top: 1px solid rgba(51, 65, 85, 0.5);
+  box-shadow:
+    0 -6px 28px -8px rgba(0, 0, 0, 0.5),
+    0 -1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .nav-item {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.5rem 1rem;
+  padding: 0.4375rem 1rem 0.5rem;
   background: transparent;
   border: none;
   color: var(--text-secondary);
   transition:
-    color 0.2s ease,
-    background-color 0.2s ease,
-    transform 0.2s ease;
-  border-radius: 0.5rem;
+    color 0.22s var(--ease-standard),
+    transform 0.22s var(--ease-standard);
+  border-radius: var(--radius-md);
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   -webkit-user-select: none;
   cursor: pointer;
   touch-action: manipulation;
+  flex: 1 1 0;
 }
 
 .nav-item:active {
-  background: linear-gradient(135deg, rgba(14, 165, 233, 0.15) 0%, rgba(168, 85, 247, 0.15) 100%);
-  transform: scale(0.95);
+  transform: scale(0.94);
+}
+
+/* 图标容器：激活时轻微上浮 + 缩放 */
+.nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.28s var(--ease-spring);
 }
 
 .nav-item.active {
-  background: linear-gradient(135deg, rgba(14, 165, 233, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
   color: var(--primary);
 }
 
-.nav-item.active svg {
-  filter: drop-shadow(0 0 8px rgba(14, 165, 233, 0.5));
+.nav-item.active .nav-icon {
+  transform: translateY(-1px) scale(1.06);
+}
+
+.nav-item.active .nav-icon svg {
+  filter: drop-shadow(0 2px 8px rgba(14, 165, 233, 0.45));
 }
 
 .nav-label {
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: font-weight 0.22s var(--ease-standard);
+}
+
+.nav-item.active .nav-label {
+  font-weight: 650;
+}
+
+/* 激活指示条：底部渐变胶囊，滑入式出现 */
+.nav-indicator {
+  position: absolute;
+  bottom: 0.125rem;
+  left: 50%;
+  width: 1.25rem;
+  height: 3px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+  transform: translate(-50%, 0.25rem) scaleX(0);
+  opacity: 0;
+  transition:
+    transform 0.28s var(--ease-spring),
+    opacity 0.22s var(--ease-standard);
+  pointer-events: none;
+}
+
+.nav-item.active .nav-indicator {
+  transform: translate(-50%, 0) scaleX(1);
+  opacity: 1;
 }
 </style>

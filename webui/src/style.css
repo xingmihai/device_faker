@@ -1,17 +1,44 @@
 :root {
   --primary: #0ea5e9;
   --primary-light: #38bdf8;
+  --primary-soft: rgba(14, 165, 233, 0.1);
   --secondary: #8b5cf6;
   --accent: #a855f7;
   --accent-light: #c084fc;
+  --accent-soft: rgba(168, 85, 247, 0.1);
   --gradient-start: #0ea5e9;
   --gradient-end: #a855f7;
+  /* 柔和渐变：用于卡片/区块的极低透明度铺底，避免主渐变过于抢眼 */
+  --gradient-wash: linear-gradient(
+    135deg,
+    rgba(14, 165, 233, 0.06) 0%,
+    rgba(168, 85, 247, 0.06) 100%
+  );
   --background: #f9fafb;
   --card-bg: #ffffff;
   --text: #1f2937;
   --text-secondary: #6b7280;
   --border: #e5e7eb;
   --shadow: rgba(0, 0, 0, 0.05);
+
+  /* ── 圆角阶梯：统一各层级的圆角节奏 ── */
+  --radius-xs: 8px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  /* ── 阴影层次：越"浮起"的元素阴影越柔、范围越大 ── */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 2px 8px -1px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 8px 24px -6px rgba(15, 23, 42, 0.1), 0 2px 6px -1px rgba(15, 23, 42, 0.05);
+  --shadow-lg: 0 16px 40px -10px rgba(15, 23, 42, 0.16), 0 4px 10px -2px rgba(15, 23, 42, 0.06);
+  --shadow-glow: 0 8px 24px -6px rgba(14, 165, 233, 0.35);
+
+  /* 主题切换动效统一节奏 */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
 }
 
 .dark {
@@ -21,6 +48,13 @@
   --text-secondary: #94a3b8;
   --border: #334155;
   --shadow: rgba(0, 0, 0, 0.4);
+
+  /* 暗色下阴影需更深才有层次，同时加一点冷调描边让卡片"浮"起来 */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 2px 8px -1px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 24px -6px rgba(0, 0, 0, 0.5), 0 2px 6px -1px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 16px 40px -10px rgba(0, 0, 0, 0.6), 0 4px 10px -2px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 8px 24px -6px rgba(14, 165, 233, 0.45);
 
   /* Element Plus 深色模式变量覆盖 */
   --el-bg-color: #1e293b;
@@ -617,4 +651,302 @@ div.el-message-box__wrapper > div.el-message-box {
 .dark .template-dialog .el-collapse-item__arrow,
 .dark .app-config-dialog .el-collapse-item__arrow {
   color: var(--el-text-color-secondary);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   通用精致卡片与控件增强
+   ──────────────────────────────────────────────────────────────────────────
+   只做视觉层增强（圆角/阴影/渐变/间距），不改变任何结构与交互逻辑。
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 卡片：柔和渐变铺底 + 层次阴影 + 顶部高光描边 ── */
+.df-card {
+  position: relative;
+  overflow: hidden;
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid transparent;
+  transition:
+    box-shadow 0.25s var(--ease-standard),
+    transform 0.25s var(--ease-standard),
+    border-color 0.25s var(--ease-standard);
+}
+
+/* 顶部一圈极细高光，模拟玻璃边缘受光 */
+.df-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(14, 165, 233, 0.35) 35%,
+    rgba(168, 85, 247, 0.35) 65%,
+    transparent 100%
+  );
+  opacity: 0;
+  transition: opacity 0.25s var(--ease-standard);
+  pointer-events: none;
+}
+
+.df-card:hover::before {
+  opacity: 1;
+}
+
+/* 可点击卡片：按下有轻微下沉反馈 */
+.df-card--interactive {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.df-card--interactive:active {
+  transform: scale(0.985);
+  box-shadow: var(--shadow-xs);
+}
+
+/* 强调卡片：主渐变描边 + 更柔的光晕 */
+.df-card--accent {
+  border-color: rgba(14, 165, 233, 0.18);
+  box-shadow: var(--shadow-md);
+}
+
+/* ── 区块标题：统一字重与间距 ── */
+.df-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+/* 标题左侧的小渐变竖条 */
+.df-section-title::before {
+  content: '';
+  width: 3px;
+  height: 1.05rem;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(180deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+  flex-shrink: 0;
+}
+
+/* ── 徽标 / 胶囊标签：柔和底 + 细描边 ── */
+.df-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1875rem 0.625rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.5;
+  background: var(--gradient-wash);
+  border: 1px solid rgba(14, 165, 233, 0.14);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.dark .df-chip {
+  border-color: rgba(148, 163, 184, 0.22);
+}
+
+/* ── 圆形图标底座：柔和渐变 + 内阴影，比纯色块更有质感 ── */
+.df-icon-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  background: var(--gradient-wash);
+  box-shadow: inset 0 0 0 1px rgba(14, 165, 233, 0.12);
+}
+
+/* ── 分隔线：渐变淡出，避免生硬的实线 ── */
+.df-divider {
+  height: 1px;
+  border: none;
+  margin: 0;
+  background: linear-gradient(90deg, transparent, var(--border) 15%, var(--border) 85%, transparent);
+}
+
+/* ── 空状态：居中 + 柔和占位图标 ── */
+.df-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Element Plus 组件视觉统一
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* 按钮：统一圆角与按压反馈 */
+.el-button {
+  border-radius: var(--radius-sm) !important;
+  font-weight: 500 !important;
+  transition:
+    transform 0.18s var(--ease-standard),
+    box-shadow 0.18s var(--ease-standard),
+    background-color 0.18s var(--ease-standard) !important;
+}
+
+.el-button:not(.is-disabled):active {
+  transform: scale(0.97);
+}
+
+/* 主按钮：渐变填充 + 柔光投影 */
+.el-button--primary:not(.is-plain):not(.is-text):not(.is-link) {
+  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%) !important;
+  border: none !important;
+  box-shadow: 0 4px 14px -3px rgba(14, 165, 233, 0.4);
+}
+
+.el-button--primary:not(.is-plain):not(.is-text):not(.is-link):hover {
+  box-shadow: 0 6px 20px -4px rgba(14, 165, 233, 0.5);
+  filter: brightness(1.05);
+}
+
+/* 输入框 / 选择器：圆角与聚焦态柔光 */
+.el-input__wrapper,
+.el-textarea__inner,
+.el-select__wrapper {
+  border-radius: var(--radius-sm) !important;
+  transition:
+    box-shadow 0.2s var(--ease-standard),
+    background-color 0.2s var(--ease-standard) !important;
+}
+
+.el-input__wrapper.is-focus,
+.el-select__wrapper.is-focused {
+  box-shadow: 0 0 0 1px var(--primary) inset, 0 0 0 3px rgba(14, 165, 233, 0.12) !important;
+}
+
+/* 标签：胶囊化 */
+.el-tag {
+  border-radius: var(--radius-pill) !important;
+  font-weight: 500 !important;
+  border: none !important;
+}
+
+/* 开关：轨道加渐变，更贴合整体色调 */
+.el-switch.is-checked .el-switch__core {
+  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%) !important;
+  border-color: transparent !important;
+}
+
+/* 卡片类容器统一圆角 */
+.el-card {
+  border-radius: var(--radius-lg) !important;
+  border-color: var(--border) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+/* 折叠面板：圆角与内边距收拢 */
+.el-collapse {
+  border-radius: var(--radius-md) !important;
+  overflow: hidden;
+  border-color: var(--border) !important;
+}
+
+.el-collapse-item__header {
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+}
+
+/* 提示条：柔和圆角 + 无硬边框 */
+.el-alert {
+  border-radius: var(--radius-md) !important;
+  border: none !important;
+  box-shadow: var(--shadow-xs);
+}
+
+/* 弹窗：更大圆角 + 层次阴影（已有 20px，这里统一走 token） */
+.el-dialog {
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+/* 弹出层（下拉、气泡）：圆角与阴影 */
+.el-popper,
+.el-select-dropdown,
+.el-autocomplete-suggestion {
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-md) !important;
+  border: 1px solid var(--border) !important;
+  overflow: hidden;
+}
+
+/* 下拉项选中态：柔和主色底 */
+.el-select-dropdown__item.is-selected {
+  background: var(--gradient-wash) !important;
+  font-weight: 600 !important;
+}
+
+/* 消息提示：胶囊化、更柔 */
+.el-message {
+  border-radius: var(--radius-pill) !important;
+  box-shadow: var(--shadow-md) !important;
+  border: none !important;
+  padding: 0.625rem 1.125rem !important;
+}
+
+.el-message__content {
+  font-weight: 500;
+}
+
+/* 表单项标签：统一字色与字重 */
+.el-form-item__label {
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* 骨架屏：更柔和的渐变 */
+.el-skeleton__item {
+  border-radius: var(--radius-sm) !important;
+  background: linear-gradient(90deg, var(--border) 25%, var(--card-bg) 50%, var(--border) 75%) !important;
+  background-size: 200% 100% !important;
+}
+
+/* 复选框/单选：主色统一 */
+.el-checkbox__input.is-checked .el-checkbox__inner,
+.el-radio__input.is-checked .el-radio__inner {
+  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%) !important;
+  border-color: transparent !important;
+}
+
+/* 分页器：胶囊化 */
+.el-pager li {
+  border-radius: var(--radius-sm) !important;
+}
+
+.el-pager li.is-active {
+  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%) !important;
+  color: #fff !important;
+  font-weight: 600;
+  box-shadow: 0 3px 10px -2px rgba(14, 165, 233, 0.45);
+}
+
+/* 进度条：渐变填充 */
+.el-progress-bar__inner {
+  background: linear-gradient(90deg, var(--gradient-start) 0%, var(--gradient-end) 100%) !important;
+  border-radius: var(--radius-pill) !important;
+}
+
+/* 尊重系统「减少动态效果」设置 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
