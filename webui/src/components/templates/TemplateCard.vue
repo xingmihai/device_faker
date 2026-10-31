@@ -121,7 +121,7 @@ const { t } = useI18n()
 .template-card {
   padding: 1.25rem;
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
   background: var(--card-bg);
   border: 1px solid transparent;
   width: 100%;
@@ -136,26 +136,21 @@ const { t } = useI18n()
     border-color 0.25s var(--ease-standard);
 }
 
-/* 顶部渐变高光：hover 时浮现，模拟玻璃边缘受光 */
+/* 顶部渐变高光：常驻显示。触摸设备 hover 基本不触发，
+   挂在 hover 上等于永远看不见。 */
 .template-card::before {
   content: '';
   position: absolute;
   inset: 0 0 auto 0;
-  height: 1px;
+  height: 2px;
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(14, 165, 233, 0.35) 35%,
-    rgba(168, 85, 247, 0.35) 65%,
+    rgba(14, 165, 233, 0.55) 30%,
+    rgba(168, 85, 247, 0.55) 70%,
     transparent 100%
   );
-  opacity: 0;
-  transition: opacity 0.25s var(--ease-standard);
   pointer-events: none;
-}
-
-.template-card:hover::before {
-  opacity: 1;
 }
 
 .template-header {

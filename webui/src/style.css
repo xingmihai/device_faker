@@ -11,8 +11,8 @@
   /* 柔和渐变：用于卡片/区块的极低透明度铺底，避免主渐变过于抢眼 */
   --gradient-wash: linear-gradient(
     135deg,
-    rgba(14, 165, 233, 0.06) 0%,
-    rgba(168, 85, 247, 0.06) 100%
+    rgba(14, 165, 233, 0.14) 0%,
+    rgba(168, 85, 247, 0.12) 100%
   );
   --background: #f9fafb;
   --card-bg: #ffffff;
@@ -30,11 +30,11 @@
   --radius-pill: 999px;
 
   /* ── 阴影层次：越"浮起"的元素阴影越柔、范围越大 ── */
-  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
-  --shadow-sm: 0 2px 8px -1px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
-  --shadow-md: 0 8px 24px -6px rgba(15, 23, 42, 0.1), 0 2px 6px -1px rgba(15, 23, 42, 0.05);
-  --shadow-lg: 0 16px 40px -10px rgba(15, 23, 42, 0.16), 0 4px 10px -2px rgba(15, 23, 42, 0.06);
-  --shadow-glow: 0 8px 24px -6px rgba(14, 165, 233, 0.35);
+  --shadow-xs: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-sm: 0 3px 10px -1px rgba(15, 23, 42, 0.14), 0 1px 3px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 10px 28px -6px rgba(15, 23, 42, 0.2), 0 3px 8px -1px rgba(15, 23, 42, 0.1);
+  --shadow-lg: 0 18px 46px -10px rgba(15, 23, 42, 0.3), 0 5px 12px -2px rgba(15, 23, 42, 0.14);
+  --shadow-glow: 0 10px 28px -6px rgba(14, 165, 233, 0.45);
 
   /* 主题切换动效统一节奏 */
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
@@ -673,26 +673,22 @@ div.el-message-box__wrapper > div.el-message-box {
     border-color 0.25s var(--ease-standard);
 }
 
-/* 顶部一圈极细高光，模拟玻璃边缘受光 */
+/* 顶部一圈渐变高光，模拟玻璃边缘受光。
+   常驻显示（不挂 hover）——触摸设备上 hover 基本不触发，
+   挂在 hover 上等于永远看不见。 */
 .df-card::before {
   content: '';
   position: absolute;
   inset: 0 0 auto 0;
-  height: 1px;
+  height: 2px;
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(14, 165, 233, 0.35) 35%,
-    rgba(168, 85, 247, 0.35) 65%,
+    rgba(14, 165, 233, 0.55) 30%,
+    rgba(168, 85, 247, 0.55) 70%,
     transparent 100%
   );
-  opacity: 0;
-  transition: opacity 0.25s var(--ease-standard);
   pointer-events: none;
-}
-
-.df-card:hover::before {
-  opacity: 1;
 }
 
 /* 可点击卡片：按下有轻微下沉反馈 */

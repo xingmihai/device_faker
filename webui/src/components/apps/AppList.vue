@@ -118,7 +118,7 @@ onUnmounted(() => {
 .apps-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.875rem;
 }
 
 /*
@@ -132,11 +132,11 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 1rem;
-  border-radius: var(--radius-md);
+  padding: 1.125rem 1rem;
+  border-radius: var(--radius-lg);
   background: var(--card-bg);
   border: 1px solid var(--border);
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--shadow-sm);
   /* 只过渡反馈需要的属性;box-shadow/背景过渡在滚动列表里是纯浪费 */
   transition: transform 0.15s ease;
   -webkit-tap-highlight-color: transparent;
@@ -163,6 +163,9 @@ onUnmounted(() => {
   flex-shrink: 0;
   border-radius: var(--radius-md);
   overflow: hidden;
+  /* 图标底座：没加载到图标时也有柔和渐变底，不再是一片空白 */
+  background: var(--gradient-wash);
+  box-shadow: inset 0 0 0 1px rgba(14, 165, 233, 0.14);
 }
 
 @keyframes shimmer {

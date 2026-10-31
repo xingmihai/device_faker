@@ -235,9 +235,9 @@ onActivated(() => {
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 1rem;
+  padding: 1.125rem;
   background: var(--background);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   transition: all 0.15s ease;
   -webkit-tap-highlight-color: transparent;
 }
