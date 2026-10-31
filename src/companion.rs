@@ -301,18 +301,6 @@ pub fn handle_companion_request(stream: &mut UnixStream) {
                 warn!("Failed to write companion response: {e}");
             }
         }
-        CompanionRequest::Restore(request) => {
-            let response = match restore_properties(request) {
-                Ok(_) => CompanionResponse::ok(),
-                Err(err) => {
-                    error!("Companion failed to restore properties: {err}");
-                    CompanionResponse::err(err.to_string())
-                }
-            };
-            if let Err(e) = write_companion_response(stream, &response) {
-                warn!("Failed to write companion response: {e}");
-            }
-        }
         CompanionRequest::WriteLog(request) => {
             let response = match write_log_lines(request) {
                 Ok(_) => CompanionResponse::ok(),
@@ -572,21 +560,6 @@ fn apply_resetprop_session(
     Ok(backups_for_response)
 }
 
-fn restore_properties(request: RestoreRequest) -> anyhow::Result<()> {
-    if request.props.is_empty() {
-        return Ok(());
-    }
-
-    for (key, value) in &request.props {
-        apply_resetprop(key, value)?;
-    }
-
-    // Rebuild after restoring originals to reclaim any holes.
-    rebuild_all_contexts(request.props.keys());
-
-    Ok(())
-}
-
 /// 属性在真机是否存在。返回 `None` = 无法判定（bionic 符号加载失败），调用方保守放行。
 ///
 /// 走 `sys_prop::find`（本进程直接查属性区）——**不 fork/exec `getprop`**。
@@ -650,7 +623,7 @@ fn apply_resetprop(key: &str, value: &str) -> anyhow::Result<()> {
     // delete+set 兜底——后者是全局可见的破坏性操作（delete 与 set 之间其他进程
     // 读到空值，set 再失败则属性永久丢失）。
     // 返回的 bool 表示旧 long buffer 成为孤儿、需要 rebuild 回收；调用方
-    // （apply_props_batch / restore）结束时会统一 rebuild_all_contexts。
+    // （apply_props_batch / 会话恢复）结束时会统一 rebuild_all_contexts。
     rp.set(key, value)
         .map_err(|e| anyhow::anyhow!("resetprop set failed for {key}: {e}"))?;
     Ok(())
@@ -841,16 +814,20 @@ pub(crate) struct ResetpropSessionRequest {
     debug: bool,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub(crate) struct RestoreRequest {
-    props: HashMap<String, String>,
-}
-
+/// 与 Zygisk 模块的请求协议。
+///
+/// 历史上还有一个 `Restore` 变体（Zygisk 侧主动请求恢复全局属性）。自
+/// `ACTIVE_RESET_SESSION` 移除后，恢复改由 companion 内部的前台门控驱动
+/// （见 `handle_fg_event` / 会话回收），Zygisk 侧不再发送 Restore，该变体
+/// 与 `restore_properties` 一并删除。
+///
+/// 注意不要按旧协议恢复它：旧实现是对备份值做 `apply_resetprop` 写回，
+/// 而现行逻辑对"备份时本就不存在的 key"走 **delete**（写空串会造出可枚举的
+/// 幽灵属性，反而更容易被检出），两者语义已经不兼容。
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "cmd", content = "payload")]
 pub enum CompanionRequest {
     Apply(ResetpropSessionRequest),
-    Restore(RestoreRequest),
     WriteLog(WriteLogRequest),
 }
 

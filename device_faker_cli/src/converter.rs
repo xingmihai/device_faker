@@ -88,6 +88,18 @@ const SECURITY_PATCH_KEYS: &[&str] = &[
     // vendor 分区独有的裸名副本（无 .version. 段）。
     "ro.vendor.build.security_patch",
 ];
+// 以下三个是 v1.6.0 新增字段，此前 CLI 完全不支持：
+// 导出真机配置当模板底子时会静默丢失，且 soc_model / display_id 无法由
+// 指纹反推补全（complete_device_profile 只解析 brand/product/device/release/
+// build_id/incremental/type/tags），因此必须在这里显式导出。
+const SOC_MODEL_KEYS: &[&str] = &["ro.soc.model"];
+const DISPLAY_ID_KEYS: &[&str] = &["ro.build.display.id"];
+const INCREMENTAL_KEYS: &[&str] = &[
+    "ro.build.version.incremental",
+    "ro.system.build.version.incremental",
+    "ro.vendor.build.version.incremental",
+    "ro.product.build.version.incremental",
+];
 
 #[derive(Debug, Serialize)]
 struct OutputConfig {
@@ -116,9 +128,15 @@ struct DeviceTemplateToml {
     #[serde(skip_serializing_if = "Option::is_none")]
     board: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    soc_model: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     fingerprint: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     build_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    display_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    incremental: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     security_patch: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -140,8 +158,11 @@ impl DeviceTemplateToml {
             || self.product.is_some()
             || self.hardware.is_some()
             || self.board.is_some()
+            || self.soc_model.is_some()
             || self.fingerprint.is_some()
             || self.build_id.is_some()
+            || self.display_id.is_some()
+            || self.incremental.is_some()
             || self.security_patch.is_some()
             || self.characteristics.is_some()
             || self.android_version.is_some()
@@ -226,8 +247,11 @@ fn build_template(properties: &BTreeMap<String, String>) -> DeviceTemplateToml {
         product: read_non_empty_property(properties, PRODUCT_KEYS),
         hardware: read_non_empty_property(properties, HARDWARE_KEYS),
         board: read_non_empty_property(properties, BOARD_KEYS),
+        soc_model: read_non_empty_property(properties, SOC_MODEL_KEYS),
         fingerprint: read_non_empty_property(properties, FINGERPRINT_KEYS),
         build_id: read_non_empty_property(properties, BUILD_ID_KEYS),
+        display_id: read_non_empty_property(properties, DISPLAY_ID_KEYS),
+        incremental: read_non_empty_property(properties, INCREMENTAL_KEYS),
         security_patch: read_non_empty_property(properties, SECURITY_PATCH_KEYS),
         characteristics: read_non_empty_property(properties, CHARACTERISTICS_KEYS),
         android_version: read_non_empty_property(properties, ANDROID_VERSION_KEYS),
